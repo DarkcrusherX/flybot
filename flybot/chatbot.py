@@ -1,9 +1,9 @@
+import rospy
 import nltk
 from nltk.stem import WordNetLemmatizer
 lemmatizer = WordNetLemmatizer()
 import pickle
 import numpy as np
-import rospy
 from std_msgs.msg import String
 import keras.backend.tensorflow_backend as tb
 tb._SYMBOLIC_SCOPE.value = True
@@ -22,9 +22,8 @@ global data2
 def callback(data1):
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", data1.data)
     data2 = str(data1.data)
-    talker(data2)
+    return data2
 
-rospy.Subscriber("/voice", String, callback)
 def clean_up_sentence(sentence):
     # tokenize the pattern - split words into array
     sentence_words = nltk.word_tokenize(sentence)
@@ -70,16 +69,15 @@ def getResponse(ints, intents_json):
             break
     return result
 
-def chatbot_response(msg):
-    ints = predict_class(msg, model)
-    res = getResponse(ints, intents)
-    return res
-
-def talker(data2):
-    print(data2)
+def chatbot_response(data2):
     if data2 != '':
-        res = chatbot_response(data2)
+        ints = predict_class(str(data2), model)
+        res = getResponse(ints, intents)
         pub = rospy.Publisher('/chat', String,queue_size=10)
         pub.publish(res)
 
-rospy.spin()
+while True:
+    rospy.wait_for_message("/voice",String)
+    data2=rospy.Subscriber("/voice", String, callback)
+    chatbot_response(data2)
+
